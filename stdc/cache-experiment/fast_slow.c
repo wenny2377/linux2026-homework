@@ -33,12 +33,27 @@ static node_t *build_list(size_t n)
     return head;
 }
 
-/* Fast-slow pointer traversal (no cycle, walk to end) */
+/*non prefetch */
 static long fast_slow_traverse(node_t *head)
 {
     node_t *slow = head, *fast = head;
     long count = 0;
     while (fast && fast->next) {
+        slow = slow->next;
+        fast = fast->next->next;
+        count++;
+    }
+    return count;
+}
+
+/* prefetch  */
+static long fast_slow_traverse_prefetch(node_t *head)
+{
+    node_t *slow = head, *fast = head;
+    long count = 0;
+    while (fast && fast->next) {
+        if (fast->next->next)
+            __builtin_prefetch(fast->next->next, 0, 1);
         slow = slow->next;
         fast = fast->next->next;
         count++;
@@ -58,13 +73,27 @@ static void free_list(node_t *head)
 int main(int argc, char *argv[])
 {
     size_t n = 1000000;
-    if (argc > 2 && strcmp(argv[1], "--length") == 0)
-        n = (size_t)atol(argv[2]);
+    int mode = 0; /* 0 = original, 1 = prefetch */
 
-    srand((unsigned)time(NULL));
+    for (int i = 1; i < argc; i++) {
+        if (strcmp(argv[i], "--length") == 0 && i + 1 < argc)
+            n = (size_t)atol(argv[++i]);
+        else if (strcmp(argv[i], "--prefetch") == 0)
+            mode = 1;
+    }
+
+    srand(42); 
     node_t *head = build_list(n);
-    long result = fast_slow_traverse(head);
-    printf("fast_slow traverse steps: %ld (n=%zu)\n", result, n);
+
+    long result;
+    if (mode == 0)
+        result = fast_slow_traverse(head);
+    else
+        result = fast_slow_traverse_prefetch(head);
+
+    printf("steps=%ld n=%zu mode=%s\n",
+           result, n, mode == 0 ? "original" : "prefetch");
+
     free_list(head);
     return 0;
 }

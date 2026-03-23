@@ -1,0 +1,21 @@
+gcc -O2 -Wall -Wextra -o relu_bench relu_bench.c
+=== relu: branch vs branchless ===
+perf stat -e branch-misses,branches,cycles ./relu_bench
+count        = 100000000
+branch       = 0.2595 s
+branchless   = 0.2595 s
+speedup      = 1.00x
+(sink=16777216.0 prevents dead-code elimination)
+
+ Performance counter stats for './relu_bench':
+
+        14,618,017      branch-misses                    #    0.72% of all branches           
+     2,021,825,033      branches                                                              
+     5,560,342,919      cycles                                                                
+
+       1.198704281 seconds time elapsed
+
+       1.050739000 seconds user
+       0.147963000 seconds sys
+
+
